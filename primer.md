@@ -6,7 +6,7 @@
 - Full Next.js 15 (App Router) project with TypeScript, Tailwind CSS
 - **Screen 1 (Welcome `/`)** — fully styled animated night-sky splash screen imported from Stitch, production-ready
 - **Screen 2 (Mood `/onboarding/mood`)** — fully styled with horizontal icon cards, dark background, navigation buttons
-- Screen 3 (Taste `/onboarding/taste`) — plain, unstyled
+- **Screen 3 (Taste `/onboarding/taste`)** — fully styled with grouped pill-shaped multi-select chips, same dark background and nav pattern as Mood
 - Auth Page (`/auth`) — plain, unstyled
 - Discovery Feed (`/discover`) — plain, unstyled
 - Zustand stores for onboarding + auth state
@@ -23,7 +23,7 @@
 - Discovery feed filters mock trips by mood + taste preferences
 
 ### What is Incomplete
-- Screens 3–5 (Taste, Auth, Discover) — unstyled plain HTML
+- Screens 4–5 (Auth, Discover) — unstyled plain HTML
 - No real authentication (Phase 3)
 - No API integration (Phase 3)
 - No Mapbox integration
@@ -87,32 +87,38 @@
 - Continue button unresponsive: removed `disabled` attr + `motion.button` combo → plain `<button>` with conditional classes
 - Back button navigating forward: `router.back()` → `router.push('/')` (explicit route)
 
+### Taste Page Redesign (Screen 3)
+- Rebuilt `src/app/onboarding/taste/page.tsx` to match the Mood page's vibe exactly:
+  - Same glossy black gradient background, `max-w-2xl` content column (wider than Mood's `max-w-lg` to fit pill rows)
+  - Same label/headline pattern: `"Your Travel Taste"` tracking-widest label + `"What kind of journey calls to you?"` headline + supporting body copy
+  - Same white circular nav buttons: back → `/onboarding/mood`, next → `handleContinue` (routes to `/discover` if `isAuthenticated`, else `/auth`) — both always enabled since taste selection is optional
+  - Same `text-gray-500 italic` philosophical quote at the bottom, same stagger fade-in (`container`/`item` variants, `staggerChildren: 0.08`)
+- Taste options rendered as small oval/pill multi-select chips per the user's request ("small ovel cards like botton shape"): `rounded-full px-6 py-2.5 border`, selected = white fill + dark text, unselected = transparent + outline, `aria-pressed` for a11y
+- Per follow-up feedback ("remove category heading club and combine everything together"): flattened all `TASTE_GROUPS` options into a single `allTasteOptions = TASTE_GROUPS.flatMap(...)` list — no more per-category `<h2>` headings or `<section>` wrappers, just one `flex flex-wrap justify-center gap-3` row of pills
+- Entrance animation went through two iterations: first a rotation-wobble "shaky settle" per "initialy give a shacky animation for all option coming together", then replaced per "try some other animation suiting the vibe" with a calmer **blur-to-focus reveal** — `hidden: { opacity: 0, filter: 'blur(10px)', y: 18, scale: 0.94 }` → `visible: { opacity: 1, filter: 'blur(0px)', y: 0, scale: 1 }` (`pillItem` variant), staggered via the existing `container` variant. Chosen because it matches CLAUDE.md's preferred "Reveal"/"Gentle Scale" motion language (and the stitch-worker skill's documented section-entrance standard) far better than rotation/wobble — feels like a photo resolving into focus. Respects `useReducedMotion()` (falls back to plain opacity fade)
+- Multi-select via existing `selectedTastes`/`toggleTaste` from `useOnboardingStore` — no store changes needed
+- Verified with `tsc --noEmit` (clean) and curl against the dev server (renders all group labels and option pills)
+
 ---
 
 ## Immediate Next Steps
 
-1. **Style Screen 3 — Taste Collection (`/onboarding/taste`)**
-   - Same dark glossy black background
-   - Multi-select chip/card grid for Nature, Experience Style, Atmosphere groups
-   - Back (top-left circle) → `/onboarding/mood`, Next (top-right circle) → `/auth`
-   - Philosophical quote at bottom
-
-2. **Style Screen 4 — Auth (`/auth`)**
+1. **Style Screen 4 — Auth (`/auth`)**
    - Login/signup toggle
    - Add React Hook Form + Zod validation
    - Minimal, calm form — no aggressive CTAs
 
-3. **Style Screen 5 — Discovery Feed (`/discover`)**
+2. **Style Screen 5 — Discovery Feed (`/discover`)**
    - Trip cards with imagery
    - Mood/taste-filtered results
    - Skeleton loading states
 
-4. **Extract shared components**
-   - `CircleNavButton` — the white/grey circle arrow button used on mood + upcoming pages
-   - `PageQuote` — the italic grey quote used across onboarding pages
+3. **Extract shared components**
+   - `CircleNavButton` — the white circle arrow button now duplicated across Welcome, Mood, and Taste pages
+   - `PageQuote` — the italic grey quote duplicated across Mood and Taste pages
    - Move to `src/components/`
 
-5. **Add Shadcn/UI** as the component primitive layer
+4. **Add Shadcn/UI** as the component primitive layer
 
 ---
 
@@ -122,8 +128,8 @@
 - Trip cards have no images — `imageUrl` is empty string in mock data
 - No 404 / not-found page
 - No loading, empty, or error states
-- Taste and Auth pages unstyled — visual consistency break mid-flow
-- `CircleNavButton` and `PageQuote` are duplicated across pages — extract to shared components
+- Auth page still unstyled — visual consistency break mid-flow (last remaining gap before Discover)
+- `CircleNavButton` and `PageQuote` are now duplicated across three pages (Welcome/Mood/Taste) — extract to shared components before styling Auth
 
 ---
 

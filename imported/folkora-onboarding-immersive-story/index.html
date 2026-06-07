@@ -1,0 +1,340 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Folkora Onboarding</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Passions+Conflict&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-high": "#eae8e7",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#574500",
+                        "primary": "#95491f",
+                        "outline-variant": "#dac1b7",
+                        "background": "#fbf9f8",
+                        "surface": "#fbf9f8",
+                        "inverse-on-surface": "#f2f0f0",
+                        "secondary-container": "#938efe",
+                        "primary-fixed": "#ffdbcc",
+                        "on-secondary-fixed": "#110069",
+                        "surface-bright": "#fbf9f8",
+                        "inverse-surface": "#303030",
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#95491f",
+                        "secondary-fixed-dim": "#c4c0ff",
+                        "outline": "#87736a",
+                        "on-primary": "#ffffff",
+                        "on-surface": "#1b1c1c",
+                        "surface-container-highest": "#e4e2e2",
+                        "surface-container": "#efeded",
+                        "on-tertiary-fixed": "#241a00",
+                        "on-background": "#1b1c1c",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#351000",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "surface-variant": "#e4e2e2",
+                        "on-surface-variant": "#54433b",
+                        "tertiary-container": "#d5b243",
+                        "on-secondary-fixed-variant": "#3d36a2",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#ff9d6c",
+                        "surface-container-low": "#f5f3f3",
+                        "tertiary": "#735c00",
+                        "surface-dim": "#dbd9d9",
+                        "secondary": "#5550bc",
+                        "secondary-fixed": "#e3dfff",
+                        "tertiary-fixed": "#ffe088",
+                        "on-primary-fixed-variant": "#773208",
+                        "primary-fixed-dim": "#ffb693",
+                        "on-secondary-container": "#281d8e",
+                        "on-primary-container": "#773209",
+                        "on-error": "#ffffff",
+                        "inverse-primary": "#ffb693",
+                        "on-tertiary-container": "#574500",
+                        "tertiary-fixed-dim": "#e7c353"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "section-gap": "48px",
+                        "margin-mobile": "24px",
+                        "gutter": "16px",
+                        "margin-desktop": "64px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "label-md": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "cursive": ["Passions Conflict", "cursive"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["30px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+
+        @keyframes bird-glide {
+            0% { transform: translate(-20vw, 0); opacity: 0; }
+            15% { opacity: 0.8; }
+            85% { opacity: 0.8; }
+            100% { transform: translate(120vw, -10vh); opacity: 0; }
+        }
+
+        @keyframes subtle-wing {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.7); }
+        }
+
+        @keyframes fade-in-up {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Write-on Animation Core */
+        @keyframes write-on {
+            to { stroke-dashoffset: 0; }
+        }
+
+        @keyframes fill-text {
+            to { fill: rgba(255, 255, 255, 1); }
+        }
+
+        .animate-fade-hi {
+            opacity: 0;
+            animation: fade-in-up 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation-delay: 1s;
+        }
+
+        /* Continuous Sequence Styles */
+        .svg-text-welcome {
+            font-family: 'Passions Conflict', cursive;
+            font-size: 100px;
+            fill: rgba(255, 255, 255, 0);
+            stroke: #ffffff;
+            stroke-width: 1px;
+            /* Starts after 'Hi' fades in */
+            animation: write-on 4s cubic-bezier(0.4, 0, 0.2, 1) forwards,
+                       fill-text 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation-delay: 3s, 8.5s;
+        }
+
+        .svg-text-folkora {
+            font-family: 'Plus Jakarta Sans';
+            font-weight: 700;
+            font-size: 48px;
+            letter-spacing: -0.02em;
+            fill: rgba(255, 255, 255, 0);
+            stroke: #ffffff;
+            stroke-width: 0.5px;
+            /* Starts exactly when 'Welcome To' finishes (3s + 4s = 7s) */
+            animation: write-on 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards,
+                       fill-text 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation-delay: 7s, 8.5s;
+        }
+
+        /* Final content appears after everything is filled */
+        .animate-fade-step-final {
+            opacity: 0;
+            animation: fade-in-up 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation-delay: 9.5s;
+        }
+
+        .bird-container {
+            position: absolute;
+            animation: bird-glide linear infinite;
+            pointer-events: none;
+            z-index: 5;
+            will-change: transform, opacity;
+        }
+
+        .bird-svg {
+            width: 32px;
+            height: 24px;
+            fill: #ffffff;
+            animation: subtle-wing 2s ease-in-out infinite;
+        }
+
+        .celestial-body {
+            position: absolute;
+            left: 50%;
+            transition: all 2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sky-gradient {
+            background: linear-gradient(180deg, #1b1c1c 0%, #303030 100%);
+            transition: background 2s ease;
+        }
+
+        .bloom-effect {
+            box-shadow: 0 0 40px rgba(255, 157, 108, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md overflow-hidden">
+<!-- Onboarding Canvas -->
+<main class="relative h-screen w-screen sky-gradient flex flex-col items-center justify-center px-margin-mobile md:px-margin-desktop" style="background: linear-gradient(rgb(27, 28, 28) 0%, rgb(48, 48, 48) 100%);">
+<!-- Celestial Transition Layer -->
+<div class="absolute inset-0 overflow-hidden pointer-events-none" id="celestial-container"><div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(61,54,162,0.15)_0%,transparent_70%)] pointer-events-none"></div>
+<div class="celestial-body flex flex-col items-center" id="sun-element" style="top: 15%; transform: translateX(-50%); opacity: 1;">
+<div class="w-16 h-16 rounded-full bg-tertiary-fixed shadow-[0_0_60px_rgba(255,224,136,0.6)]"></div>
+</div>
+<div class="celestial-body flex flex-col items-center" id="moon-element" style="top: 80%; transform: translateX(-50%); opacity: 0;">
+<div class="w-14 h-14 rounded-full bg-surface-container-lowest shadow-[0_0_40px_rgba(255,255,255,0.3)]"></div>
+</div>
+</div>
+<!-- Bird Flight Layer -->
+<div class="absolute inset-0 overflow-hidden pointer-events-none" id="bird-layer"><div class="bird-container" style="top: 30.6291%; animation-delay: -11.3345s; animation-duration: 19.468s; transform: scale(1.12397);">
+                <svg class="bird-svg" viewBox="0 0 32 24" style="animation-duration: 3.5618014258075523s;">
+                    <path d="M2,12 C2,12 8,8 14,11 C20,14 26,10 30,12 C26,12 20,16 14,13 C8,10 2,12 2,12 Z"></path>
+                </svg>
+            </div><div class="bird-container" style="top: 52.8416%; animation-delay: -14.9659s; animation-duration: 24.1286s; transform: scale(1.11963);">
+                <svg class="bird-svg" viewBox="0 0 32 24" style="animation-duration: 2.814466008505767s;">
+                    <path d="M2,12 C2,12 8,8 14,11 C20,14 26,10 30,12 C26,12 20,16 14,13 C8,10 2,12 2,12 Z"></path>
+                </svg>
+            </div><div class="bird-container" style="top: 41.3729%; animation-delay: -21.9367s; animation-duration: 32.9427s; transform: scale(1.28715);">
+                <svg class="bird-svg" viewBox="0 0 32 24" style="animation-duration: 2.0444018757786004s;">
+                    <path d="M2,12 C2,12 8,8 14,11 C20,14 26,10 30,12 C26,12 20,16 14,13 C8,10 2,12 2,12 Z"></path>
+                </svg>
+            </div><div class="bird-container" style="top: 60.8414%; animation-delay: -1.76749s; animation-duration: 31.4817s; transform: scale(0.606858);">
+                <svg class="bird-svg" viewBox="0 0 32 24" style="animation-duration: 2.690333399637698s;">
+                    <path d="M2,12 C2,12 8,8 14,11 C20,14 26,10 30,12 C26,12 20,16 14,13 C8,10 2,12 2,12 Z"></path>
+                </svg>
+            </div><div class="bird-container" style="top: 29.3675%; animation-delay: -18.6504s; animation-duration: 32.6925s; transform: scale(0.531336);">
+                <svg class="bird-svg" viewBox="0 0 32 24" style="animation-duration: 3.0893138906395468s;">
+                    <path d="M2,12 C2,12 8,8 14,11 C20,14 26,10 30,12 C26,12 20,16 14,13 C8,10 2,12 2,12 Z"></path>
+                </svg>
+            </div><div class="bird-container" style="top: 53.4044%; animation-delay: -14.823s; animation-duration: 23.4895s; transform: scale(0.616168);">
+                <svg class="bird-svg" viewBox="0 0 32 24" style="animation-duration: 2.6814879650714167s;">
+                    <path d="M2,12 C2,12 8,8 14,11 C20,14 26,10 30,12 C26,12 20,16 14,13 C8,10 2,12 2,12 Z"></path>
+                </svg>
+            </div></div>
+<!-- Content Layer -->
+<div class="relative z-10 flex flex-col items-start text-left max-w-2xl w-full">
+<div class="space-y-0 flex flex-col items-start">
+<!-- Step 2: "Hi," -->
+<p class="font-body-lg text-body-lg text-surface-container-highest opacity-90 mb-2 animate-fade-hi">Hi,</p>
+<!-- Step 3: Continuous Write-on Typography SVG -->
+<svg class="overflow-visible mb-6" height="220" viewBox="0 0 600 220" width="600">
+<text class="svg-text-welcome" id="svg-welcome" style="font-size: 120px; stroke-dasharray: 1046.11; stroke-dashoffset: 1046.11;" text-anchor="start" x="0" y="80">Welcome To</text>
+<text class="svg-text-folkora" id="svg-folkora" style="font-size: 72px; stroke-dasharray: 631.816; stroke-dashoffset: 631.816;" text-anchor="start" x="0" y="170">Folkora</text>
+</svg>
+<!-- Step 4: Final Elements (Tagline, Button, Dots) -->
+<div class="animate-fade-step-final flex flex-col items-start">
+<p class="font-body-md text-body-md text-surface-container-high max-w-xs pt-4 italic">
+                "We help you discover stories worth carrying."
+            </p>
+<button class="mt-section-gap px-10 py-4 bg-surface-container-lowest text-on-surface font-headline-md text-headline-md rounded-full hover:bg-surface-container-high hover:shadow-[0_0_20px_rgba(255,255,255,0.4)] hover:scale-105 active:scale-95 transition-all duration-300">
+                Let's Pack Your Bag
+            </button>
+<!-- Pagination Dots -->
+<div class="mt-margin-desktop flex gap-2">
+<div class="w-2.5 h-2.5 rounded-full bg-surface-container-lowest"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-surface-container-low opacity-30"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-surface-container-low opacity-30"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-surface-container-low opacity-30"></div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+    // Bird Generation
+    const birdLayer = document.getElementById('bird-layer');
+    const birdCount = 6;
+    const birdPath = "M2,12 C2,12 8,8 14,11 C20,14 26,10 30,12 C26,12 20,16 14,13 C8,10 2,12 2,12 Z";
+
+    function generateBirds() {
+        for (let i = 0; i < birdCount; i++) {
+            const container = document.createElement('div');
+            container.className = 'bird-container';
+            const startY = 10 + Math.random() * 60;
+            const delay = Math.random() * 25;
+            const duration = 18 + Math.random() * 15; 
+            const scale = 0.5 + Math.random() * 0.8;
+            container.style.top = `${startY}%`;
+            container.style.animationDelay = `-${delay}s`;
+            container.style.animationDuration = `${duration}s`;
+            container.style.transform = `scale(${scale})`;
+            container.innerHTML = `
+                <svg class="bird-svg" viewBox="0 0 32 24" style="animation-duration: ${2 + Math.random() * 2}s;">
+                    <path d="${birdPath}" />
+                </svg>
+            `;
+            birdLayer.appendChild(container);
+        }
+    }
+    generateBirds();
+
+    // Celestial Cycle Interaction
+    let isDay = false; 
+    const sun = document.getElementById('sun-element');
+    const moon = document.getElementById('moon-element');
+    const main = document.querySelector('main');
+
+    function toggleCycle() {
+        if (isDay) {
+            sun.style.opacity = '0';
+            sun.style.top = '80%';
+            moon.style.opacity = '1';
+            moon.style.top = '15%';
+            main.style.background = 'linear-gradient(180deg, #0f1010 0%, #1b1c1c 100%)';
+        } else {
+            sun.style.opacity = '1';
+            sun.style.top = '15%';
+            moon.style.opacity = '0';
+            moon.style.top = '80%';
+            main.style.background = 'linear-gradient(180deg, #1b1c1c 0%, #303030 100%)';
+        }
+        isDay = !isDay;
+    }
+
+    setInterval(toggleCycle, 8000);
+
+    // Initial Path Length Calculation for SVG Typography
+    window.addEventListener('load', () => {
+        const textElements = [
+            document.getElementById('svg-welcome'),
+            document.getElementById('svg-folkora')
+        ];
+        
+        textElements.forEach(text => {
+            if (text) {
+                // Precise measurement for stroke-dasharray
+                const length = text.getComputedTextLength() * 2.5; 
+                text.style.strokeDasharray = length;
+                text.style.strokeDashoffset = length;
+            }
+        });
+    });
+</script>
+
+
+</body></html>

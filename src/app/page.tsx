@@ -1,27 +1,21 @@
 /**
  * Welcome Page — Screen 1
  *
- * Entry point of the Folkora experience. Sets the emotional tone
- * of the product before any recommendation or search occurs.
+ * Animated night-sky splash screen drawn from the Stitch "Aether Drift" design.
+ * Sets the emotional tone before any personalization or booking occurs.
  *
- * Responsibilities:
- * - Introduce Folkora with a single inspiring statement
- * - Provide one clear call-to-action to begin the personalization journey
- * - Make the user feel curious, relaxed, and inspired
+ * Animation sequence:
+ *   1s  — "Hi," fades in
+ *   3s  — "Welcome To" writes on via SVG stroke
+ *   7s  — "Folkora" writes on via SVG stroke
+ *   8.5s — Both texts fill to solid white
+ *   9.5s — Tagline + CTA + progress dots fade in
  *
  * Navigation: → /onboarding/mood
  */
 
-import Link from 'next/link';
+import { WelcomeCanvas } from '@/features/onboarding/components/welcome-canvas';
 
 export default function WelcomePage() {
-  return (
-    <main>
-      <h1>Travel isn&apos;t about destinations. It&apos;s about how you want to feel.</h1>
-
-      <p>Discover journeys curated for your mood, not your search query.</p>
-
-      <Link href="/onboarding/mood">Begin Your Journey</Link>
-    </main>
-  );
+  return <WelcomeCanvas />;
 }

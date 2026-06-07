@@ -1,3 +1,80 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ─── Bird flight animation ─────────────────────────────────────── */
+@keyframes bird-glide {
+  0%   { transform: translate(-20vw, 0); opacity: 0; }
+  15%  { opacity: 0.8; }
+  85%  { opacity: 0.8; }
+  100% { transform: translate(120vw, -10vh); opacity: 0; }
+}
+
+@keyframes subtle-wing {
+  0%, 100% { transform: scaleY(1); }
+  50%       { transform: scaleY(0.7); }
+}
+
+/* ─── SVG stroke write-on animation ─────────────────────────────── */
+@keyframes write-on {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes fill-text {
+  to { fill: rgba(255, 255, 255, 1); }
+}
+
+/* ─── Bird element classes ───────────────────────────────────────── */
+.bird-container {
+  position: absolute;
+  animation: bird-glide linear infinite;
+  pointer-events: none;
+  z-index: 5;
+  will-change: transform, opacity;
+}
+
+.bird-svg {
+  width: 32px;
+  height: 24px;
+  fill: #ffffff;
+  animation: subtle-wing ease-in-out infinite;
+}
+
+/* ─── SVG typography animation classes ──────────────────────────── */
+.svg-text-welcome {
+  font-family: var(--font-passions), cursive;
+  fill: rgba(255, 255, 255, 0);
+  stroke: #ffffff;
+  stroke-width: 1px;
+  animation:
+    write-on 4s cubic-bezier(0.4, 0, 0.2, 1) 3s forwards,
+    fill-text 1.5s cubic-bezier(0.4, 0, 0.2, 1) 8.5s forwards;
+}
+
+.svg-text-folkora {
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+  font-weight: 700;
+  fill: rgba(255, 255, 255, 0);
+  stroke: #ffffff;
+  stroke-width: 0.5px;
+  animation:
+    write-on 2.5s cubic-bezier(0.4, 0, 0.2, 1) 7s forwards,
+    fill-text 1.5s cubic-bezier(0.4, 0, 0.2, 1) 8.5s forwards;
+}
+
+/* ─── Reduced motion: disable all decorative animations ─────────── */
+@media (prefers-reduced-motion: reduce) {
+  .bird-container,
+  .bird-svg,
+  .svg-text-welcome,
+  .svg-text-folkora {
+    animation: none !important;
+  }
+
+  .svg-text-welcome,
+  .svg-text-folkora {
+    fill: rgba(255, 255, 255, 1);
+    stroke: none;
+    stroke-dashoffset: 0;
+  }
+}

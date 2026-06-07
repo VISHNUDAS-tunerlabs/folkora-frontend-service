@@ -3,97 +3,144 @@
 ## Current Project State
 
 ### What Exists
-- Full Next.js 15 project scaffolded with App Router, TypeScript, Tailwind CSS
-- All 5 screens implemented as plain, unstyled functional pages with working navigation
-- Zustand stores for onboarding state and auth state
+- Full Next.js 15 (App Router) project with TypeScript, Tailwind CSS
+- **Screen 1 (Welcome `/`)** — fully styled animated night-sky splash screen imported from Stitch, production-ready
+- **Screen 2 (Mood `/onboarding/mood`)** — fully styled with horizontal icon cards, dark background, navigation buttons
+- Screen 3 (Taste `/onboarding/taste`) — plain, unstyled
+- Auth Page (`/auth`) — plain, unstyled
+- Discovery Feed (`/discover`) — plain, unstyled
+- Zustand stores for onboarding + auth state
 - Mock trip data with personalization filtering logic
-- Complete folder structure per CLAUDE.md architecture
+- Full Aether Drift design token system wired into Tailwind config
+- Raw Stitch import preserved at `/imported/folkora-onboarding-immersive-story/index.html`
 
 ### What is Functional
-- Full onboarding flow: Welcome → Mood → Taste → Auth → Discover
-- Mood selection (single select, persists in Zustand)
+- Full onboarding flow navigation: Welcome → Mood → Taste → Auth → Discover
+- Mood selection (single select, first card selected by default, persists in Zustand)
 - Taste selection (multi-select, persists in Zustand)
-- Fake auth (login/signup form, always succeeds, stores mock user)
-- Authenticated users skip the auth screen (redirected from taste page)
+- Fake auth (always succeeds, stores mock user)
 - Discovery feed filters mock trips by mood + taste preferences
-- All pages build successfully with zero TypeScript errors
 
 ### What is Incomplete
-- No styling — all screens are plain HTML elements (intentional per initial-pages.md)
-- No Framer Motion animations yet
-- No Shadcn/UI components yet
+- Screens 3–5 (Taste, Auth, Discover) — unstyled plain HTML
 - No real authentication (Phase 3)
 - No API integration (Phase 3)
 - No Mapbox integration
-- No TanStack Query hooks (no server state yet)
-- No React Hook Form / Zod on auth forms (currently uncontrolled, Phase 2)
+- TanStack Query installed but not yet used
+- React Hook Form + Zod installed but not yet used
+- No loading, empty, or error states
 
 ---
 
-## Session Summary
+## Session Summary (Session 3 — 2026-06-06 / 2026-06-07)
 
-### Features Completed
-- Project scaffolded from scratch (package.json, tsconfig, next.config, tailwind, postcss)
-- Screen 1: Welcome Page (`/`) — headline + single CTA
-- Screen 2: Mood Collection (`/onboarding/mood`) — 7 mood options, single select
-- Screen 3: Travel Taste Collection (`/onboarding/taste`) — 3 groups, multi-select
-- Auth Page (`/auth`) — login/signup toggle, mock auth, redirect to discover
-- Discovery Feed (`/discover`) — filters MOCK_TRIPS by mood + taste preferences
+### Stitch Import & Production Conversion (Welcome Screen)
+- Imported Stitch project `12827796371518906841` ("Animated Day-Night Onboarding") via MCP
+- Raw import saved to `/imported/folkora-onboarding-immersive-story/index.html`
+- Full 12-category audit performed — 9 critical, 10 minor issues identified
+- All issues resolved, production components created:
+  - `src/features/onboarding/components/welcome-canvas.tsx` — main container, sky state
+  - `src/features/onboarding/components/celestial-layer.tsx` — sun/moon Framer Motion transition
+  - `src/features/onboarding/components/bird-layer.tsx` — animated birds (hydration-safe via useEffect)
+  - `src/features/onboarding/components/onboarding-typography.tsx` — SVG stroke write-on animation
+  - `src/features/onboarding/components/onboarding-cta.tsx` — CTA button fixed bottom-right
 
-### Components Added
-None yet — all screens are in `src/app/` as page-level components. Phase 2 will extract reusable components to `src/components/` and `src/features/*/components/`.
+### Welcome Screen Key Details
+- Animation sequence: 1s "Hi," → 3s "Welcome To" stroke → 7s "Folkora" stroke → 8.5s fill → 9.5s tagline + CTA
+- Sky toggles between day/night every 8s via Framer Motion
+- Full `prefers-reduced-motion` support
+- "Folkora" SVG text uses Plus Jakarta Sans; all other UI uses Nunito
+- "Welcome To" uses Passions Conflict (cursive)
+- CTA button: fixed `bottom-8 right-8`, small pill, navigates to `/onboarding/mood`
+- Motto quote: left-aligned below typography, same italic style, fades in at 9.5s
+- `devIndicators: false` in next.config.ts (hides dev toolbar)
 
-### New Dependencies Introduced
-- next ^15.3.3
-- react ^19.0.0
-- zustand ^4.5.5
-- @tanstack/react-query ^5.62.0 (installed, not yet used)
-- framer-motion ^11.15.0 (installed, not yet used)
-- react-hook-form ^7.54.0 (installed, not yet used)
-- zod ^3.23.8 (installed, not yet used)
-- tailwindcss ^3.4.17 (installed, not yet used in components)
+### Design Tokens (tailwind.config.ts)
+- Full Aether Drift palette (50+ color tokens)
+- Custom spacing: `unit`, `gutter`, `margin-mobile`, `margin-desktop`, `section-gap`
+- Custom border radius: `sm`, `DEFAULT`, `md`, `lg`, `xl`, `full`
+- Custom font sizes: `headline-lg`, `headline-lg-mobile`, `headline-md`, `body-lg`, `body-md`, `label-md`
+- Font families: `sans` → Nunito (`--font-nunito`), `cursive` → Passions Conflict (`--font-passions`)
+- Plus Jakarta Sans loaded as `--font-jakarta` (used only in SVG "Folkora" write-on)
+
+### Mood Page Redesign
+- Condensed moods from 7 → 4: "I need a break", "I want adventure", "I want to slow down", "I want to reconnect"
+- Horizontal 4-column icon card grid (`grid-cols-4`)
+- Each card: fixed `h-36`, `rounded-md`, icon on top + bold label below
+- Unique SVG icon per mood: moon, mountain, leaf, heart
+- First card selected by default on mount via `useEffect`
+- Back button: white circle, `absolute top-8 left-8`, navigates to `/`
+- Next button: white circle, `absolute top-8 right-8`, enabled when mood selected
+- Philosophical quote below cards: `text-gray-500 italic opacity-25`
+- "How Are You Feeling?" label in title case (not uppercase)
+- Background: same glossy black gradient as welcome screen (`160deg, #111111 → #000000`)
+- Staggered fade-in animation on all elements
+
+### Bugs Fixed
+- Hydration mismatch: `Math.random()` in `useMemo` → moved to `useEffect` + `useState`
+- Continue button unresponsive: removed `disabled` attr + `motion.button` combo → plain `<button>` with conditional classes
+- Back button navigating forward: `router.back()` → `router.push('/')` (explicit route)
 
 ---
 
 ## Immediate Next Steps
 
-1. **Style Screen 1 (Welcome Page)** — full-screen hero, large typography, single CTA
-2. **Style Screen 2 (Mood Collection)** — mood cards with hover/selected states
-3. **Style Screen 3 (Travel Taste Collection)** — grouped pill/tag selectors
-4. **Style Auth Page** — clean centered form, login/signup toggle
-5. **Style Discovery Feed** — trip cards with destination, duration, tagline
-6. Add Framer Motion page transitions and card reveal animations
-7. Extract reusable components (Button, Card, Input) to `src/components/`
-8. Add Shadcn/UI primitives as the component foundation
-9. Add React Hook Form + Zod to the auth form
+1. **Style Screen 3 — Taste Collection (`/onboarding/taste`)**
+   - Same dark glossy black background
+   - Multi-select chip/card grid for Nature, Experience Style, Atmosphere groups
+   - Back (top-left circle) → `/onboarding/mood`, Next (top-right circle) → `/auth`
+   - Philosophical quote at bottom
+
+2. **Style Screen 4 — Auth (`/auth`)**
+   - Login/signup toggle
+   - Add React Hook Form + Zod validation
+   - Minimal, calm form — no aggressive CTAs
+
+3. **Style Screen 5 — Discovery Feed (`/discover`)**
+   - Trip cards with imagery
+   - Mood/taste-filtered results
+   - Skeleton loading states
+
+4. **Extract shared components**
+   - `CircleNavButton` — the white/grey circle arrow button used on mood + upcoming pages
+   - `PageQuote` — the italic grey quote used across onboarding pages
+   - Move to `src/components/`
+
+5. **Add Shadcn/UI** as the component primitive layer
 
 ---
 
 ## Open Issues
 
-- Auth form uses plain React state — needs React Hook Form + Zod validation (Phase 2)
-- Trip cards have no images — `imageUrl` is empty string in mock data (placeholder needed)
-- No 404 / not-found page customized yet
-- No loading states on any page yet
-- No error boundaries
+- Auth form uses plain React state — needs React Hook Form + Zod (Phase 2)
+- Trip cards have no images — `imageUrl` is empty string in mock data
+- No 404 / not-found page
+- No loading, empty, or error states
+- Taste and Auth pages unstyled — visual consistency break mid-flow
+- `CircleNavButton` and `PageQuote` are duplicated across pages — extract to shared components
 
 ---
 
 ## Architecture Decisions
 
-- **Zustand for onboarding + auth state**: Client-side UI state only. Server data will go through React Query in Phase 3. Stores are reset-able for logout flows.
-- **Mock data in `src/constants/`**: Static trips and onboarding options live here for Phase 1. Promotes easy replacement with API calls in Phase 3 without touching component code.
-- **Personalization logic in `discover/page.tsx`**: Simple filter function co-located with the page for now. Will move to `src/features/discover/services/` when API integration begins.
-- **Screens as plain page components**: No shared layout or nav bar yet — avoids premature abstraction before styling direction is confirmed.
-- **Taste page skips auth for authenticated users**: Logic lives in the taste page's `handleContinue` function, reading from `useAuthStore`.
+- **Stitch MCP as design source of truth**: All screen styling starts from Stitch import. Raw imports preserved in `/imported/` unmodified.
+- **Zustand for onboarding + auth state**: Client-side UI state only. Never stores server/API data.
+- **Framer Motion for all animations**: CSS keyframes kept only for continuous loops (birds, SVG stroke-dasharray). All entrance/exit animations use Framer Motion.
+- **`useEffect` for random/volatile values**: Any `Math.random()` or `Date` must run in `useEffect` to avoid SSR hydration mismatches.
+- **Plain `<button>` over `motion.button` for navigational actions**: Framer Motion's `disabled` + `whileTap` combo causes click event swallowing — use `motion.div` wrapper + plain `<button>` instead.
+- **Explicit navigation over `router.back()`**: `router.back()` follows browser history which can be unpredictable. Always use `router.push('/explicit-path')` for onboarding back navigation.
+- **First mood pre-selected on mount**: Reduces friction — user can proceed immediately without a required click.
+- **Nunito as primary UI font**: Replaced Plus Jakarta Sans for all UI text. Plus Jakarta Sans retained only for the "Folkora" SVG write-on animation to preserve the Stitch design intent.
+- **Design tokens in tailwind.config.ts**: Full Aether Drift palette centralized — no raw hex values in component files.
 
 ---
 
 ## Future Considerations
 
-- Add a persistent nav bar/header component once visual direction is established
-- Consider adding a progress indicator component for the onboarding flow
-- Mapbox integration for destination map views on trip detail pages
+- CMS for onboarding options (moods, tastes) to allow non-code updates
+- Progress indicator for onboarding flow (e.g. step dots, arc path)
+- Mapbox integration for destination map views
 - Trip detail page (`/trip/[id]`) needed before booking flow
-- Consider storing onboarding preferences to user profile after Phase 3 auth
-- Add Suspense + skeleton loading states before API integration
+- Store onboarding preferences to user profile post Phase 3 auth
+- Suspense + skeleton states before API integration
+- Consider shared `PageLayout` wrapper for consistent dark background across onboarding pages

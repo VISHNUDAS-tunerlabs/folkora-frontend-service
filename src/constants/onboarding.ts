@@ -18,9 +18,6 @@ export const MOODS: MoodOption[] = [
   { id: 'want-adventure', label: 'I want adventure', description: 'Push boundaries' },
   { id: 'want-to-slow-down', label: 'I want to slow down', description: 'Gentle pace' },
   { id: 'want-to-reconnect', label: 'I want to reconnect', description: 'People and places' },
-  { id: 'want-unexpected', label: 'I want something unexpected', description: 'Surprise me' },
-  { id: 'need-inspiration', label: 'I need inspiration', description: 'Spark creativity' },
-  { id: 'escape-routine', label: 'I want to escape routine', description: 'Something different' },
 ];
 
 /** Grouped taste options representing the user's preferred travel style and environment. */

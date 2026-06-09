@@ -30,10 +30,10 @@ export function OnboardingTypography() {
   if (prefersReducedMotion) {
     return (
       <div className="mb-6 flex flex-col gap-2" aria-label="Welcome To Folkora">
-        <span className="text-white leading-none" style={{ fontFamily: 'var(--font-passions), cursive', fontSize: 'clamp(60px, 12vw, 120px)' }}>
+        <span className="text-on-surface dark:text-white leading-none" style={{ fontFamily: 'var(--font-passions), cursive', fontSize: 'clamp(60px, 12vw, 120px)' }}>
           Welcome To
         </span>
-        <span className="text-white font-bold leading-none" style={{ fontSize: 'clamp(40px, 7vw, 72px)', letterSpacing: '-0.02em' }}>
+        <span className="text-on-surface dark:text-white font-bold leading-none" style={{ fontSize: 'clamp(40px, 7vw, 72px)', letterSpacing: '-0.02em' }}>
           Folkora
         </span>
       </div>

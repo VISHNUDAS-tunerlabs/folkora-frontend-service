@@ -2,6 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Theme-aware page backgrounds ───────────────────────────────
+   Light mode: soft, warm "glossy paper" gradient — editorial and calm.
+   Dark mode: the original "Aether Drift" near-black gradient.
+   Defined once here (rather than inline styles) so both themes can be
+   expressed without doubling every page's markup.                  */
+.bg-onboarding-sky {
+  background: linear-gradient(160deg, #fbf9f8 0%, #efeded 100%);
+  transition: background 0.6s ease;
+}
+.dark .bg-onboarding-sky {
+  background: linear-gradient(160deg, #111111 0%, #000000 100%);
+}
+
+/* ─── Welcome canvas sky gradients ───────────────────────────────
+   The welcome screen drifts between two close gradients on its own
+   8s "day ⇄ night" cycle (see WelcomeCanvas's `isNight`) — that
+   cycle is independent of the user's light/dark theme preference.
+   These custom properties let the canvas pick "day" vs "night"
+   while the `.dark` class (set before paint by the inline head
+   script) decides which palette — warm daylight or Aether Drift
+   near-black — those two stops resolve to. CSS-driven, so there is
+   no flash while the theme store hydrates on the client.            */
+:root {
+  --sky-day: linear-gradient(160deg, #fff7f1 0%, #fbf9f8 100%);
+  --sky-night: linear-gradient(160deg, #f6efe9 0%, #efeded 100%);
+  --svg-ink: 27, 28, 28;
+}
+.dark {
+  --sky-day: linear-gradient(160deg, #111111 0%, #000000 100%);
+  --sky-night: linear-gradient(160deg, #0a0a0a 0%, #000000 100%);
+  --svg-ink: 255, 255, 255;
+}
+
 /* ─── Bird flight animation ─────────────────────────────────────── */
 @keyframes bird-glide {
   0%   { transform: translate(-20vw, 0); opacity: 0; }
@@ -20,8 +53,14 @@
   to { stroke-dashoffset: 0; }
 }
 
+/* `fill-text` targets `--svg-ink` (the theme's primary "ink" color) — the
+   SVG glyphs solidify once their stroke finishes drawing on. Resolving the
+   color through a custom property (rather than swapping keyframe names per
+   theme) means `animation-name` never changes when `.dark` toggles, so the
+   browser doesn't restart the whole write-on/fill sequence mid-session —
+   it simply re-resolves `var(--svg-ink)` to the new theme's color in place. */
 @keyframes fill-text {
-  to { fill: rgba(255, 255, 255, 1); }
+  to { fill: rgb(var(--svg-ink)); }
 }
 
 /* ─── Bird element classes ───────────────────────────────────────── */
@@ -36,15 +75,18 @@
 .bird-svg {
   width: 32px;
   height: 24px;
-  fill: #ffffff;
+  fill: #87736a; /* outline — warm grey silhouette against the light daytime sky */
   animation: subtle-wing ease-in-out infinite;
+}
+.dark .bird-svg {
+  fill: #ffffff; /* white silhouette against the night sky */
 }
 
 /* ─── SVG typography animation classes ──────────────────────────── */
 .svg-text-welcome {
   font-family: var(--font-passions), cursive;
-  fill: rgba(255, 255, 255, 0);
-  stroke: #ffffff;
+  fill: rgba(var(--svg-ink), 0);
+  stroke: rgb(var(--svg-ink));
   stroke-width: 1px;
   animation:
     write-on 4s cubic-bezier(0.4, 0, 0.2, 1) 3s forwards,
@@ -54,8 +96,8 @@
 .svg-text-folkora {
   font-family: var(--font-jakarta), system-ui, sans-serif;
   font-weight: 700;
-  fill: rgba(255, 255, 255, 0);
-  stroke: #ffffff;
+  fill: rgba(var(--svg-ink), 0);
+  stroke: rgb(var(--svg-ink));
   stroke-width: 0.5px;
   animation:
     write-on 2.5s cubic-bezier(0.4, 0, 0.2, 1) 7s forwards,
@@ -73,7 +115,7 @@
 
   .svg-text-welcome,
   .svg-text-folkora {
-    fill: rgba(255, 255, 255, 1);
+    fill: rgb(var(--svg-ink));
     stroke: none;
     stroke-dashoffset: 0;
   }

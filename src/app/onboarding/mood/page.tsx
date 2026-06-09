@@ -12,6 +12,9 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useOnboardingStore } from '@/store/onboarding-store';
 import { MOODS } from '@/constants/onboarding';
+import { CircleNavButton } from '@/components/circle-nav-button';
+import { PageQuote } from '@/components/page-quote';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const container = {
   hidden: {},
@@ -60,33 +63,10 @@ export default function MoodPage() {
   };
 
   return (
-    <main
-      className="relative min-h-screen flex flex-col items-center justify-center px-margin-mobile md:px-margin-desktop py-16"
-      style={{ background: 'linear-gradient(160deg, #111111 0%, #000000 100%)' }}
-    >
-      <button
-        onClick={() => router.push('/')}
-        aria-label="Go back"
-        className="absolute top-8 left-8 w-11 h-11 rounded-full bg-white text-on-surface flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-[0_0_20px_rgba(255,255,255,0.25)] active:scale-95"
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M11 4L6 9l5 5" />
-        </svg>
-      </button>
-
-      <button
-        onClick={handleContinue}
-        aria-label="Continue"
-        className={`absolute top-8 right-8 w-11 h-11 rounded-full bg-white text-on-surface flex items-center justify-center transition-all duration-200 active:scale-95 ${
-          selectedMood
-            ? 'opacity-100 hover:scale-110 hover:shadow-[0_0_20px_rgba(255,255,255,0.25)]'
-            : 'opacity-30 cursor-not-allowed'
-        }`}
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M7 4l5 5-5 5" />
-        </svg>
-      </button>
+    <main className="bg-onboarding-sky relative min-h-screen flex flex-col items-center justify-center px-margin-mobile md:px-margin-desktop py-16">
+      <CircleNavButton direction="back" label="Go back" onClick={() => router.push('/')} />
+      <CircleNavButton direction="next" label="Continue" onClick={handleContinue} disabled={!selectedMood} />
+      <ThemeToggle className="absolute bottom-8 left-8" />
 
       <motion.div
         className="max-w-lg w-full flex flex-col items-center text-center"
@@ -94,11 +74,11 @@ export default function MoodPage() {
         animate="visible"
         variants={container}
       >
-        <motion.p variants={item} className="text-label-md text-surface-container-high tracking-widest mb-4">
+        <motion.p variants={item} className="text-label-md text-on-surface-variant dark:text-surface-container-high tracking-widest mb-4">
           How Are You Feeling?
         </motion.p>
 
-        <motion.h1 variants={item} className="text-headline-lg text-surface-container-lowest font-bold mb-10">
+        <motion.h1 variants={item} className="text-headline-lg text-on-surface dark:text-surface-container-lowest font-bold mb-10">
           Choose your mood.
         </motion.h1>
 
@@ -110,13 +90,13 @@ export default function MoodPage() {
                 <button
                   onClick={() => setMood(mood.id)}
                   aria-pressed={selected}
-                  className={`w-full h-36 flex flex-col items-center justify-center gap-3 px-3 rounded-md border transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                  className={`w-full h-36 flex flex-col items-center justify-center gap-3 px-3 rounded-md border transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-surface dark:focus-visible:ring-white ${
                     selected
-                      ? 'bg-surface-container-lowest text-on-surface border-surface-container-lowest'
-                      : 'bg-transparent text-surface-container-lowest border-surface-container hover:border-surface-container-highest'
+                      ? 'bg-on-surface text-surface-container-lowest border-on-surface dark:bg-surface-container-lowest dark:text-on-surface dark:border-surface-container-lowest'
+                      : 'bg-transparent text-on-surface border-outline-variant hover:border-outline dark:text-surface-container-lowest dark:border-surface-container dark:hover:border-surface-container-highest'
                   }`}
                 >
-                  <span className={selected ? 'text-on-surface' : 'text-surface-container-high'}>
+                  <span className={selected ? 'text-surface-container-lowest dark:text-on-surface' : 'text-on-surface-variant dark:text-surface-container-high'}>
                     {MOOD_ICONS[mood.id]}
                   </span>
                   <span className="text-label-md font-bold leading-snug">{mood.label}</span>
@@ -126,13 +106,9 @@ export default function MoodPage() {
           })}
         </motion.ul>
 
-        <motion.p
-          variants={item}
-          className="text-body-md text-gray-500 max-w-xs mt-8 italic text-center"
-        >
+        <PageQuote className="max-w-xs mt-8">
           &ldquo;We travel not to escape life, but for life not to escape us.&rdquo;
-        </motion.p>
-
+        </PageQuote>
       </motion.div>
     </main>
   );

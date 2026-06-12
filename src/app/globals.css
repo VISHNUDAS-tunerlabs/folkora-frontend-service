@@ -104,6 +104,18 @@
     fill-text 1.5s cubic-bezier(0.4, 0, 0.2, 1) 8.5s forwards;
 }
 
+/* ─── Hidden-scrollbar utility ───────────────────────────────────
+   Used by horizontally scrollable rails (e.g. the Discover feed) where
+   scroll-snap and arrow-key/swipe affordance are enough — a visible
+   scrollbar would clutter the editorial layout.                      */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* ─── Reduced motion: disable all decorative animations ─────────── */
 @media (prefers-reduced-motion: reduce) {
   .bird-container,

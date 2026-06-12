@@ -1,152 +1,123 @@
 # Folkora Frontend — Project State
 
-## Session 6 (2026-06-08) — Bugfix addendum
-
-User reported, immediately after Session 5's theme-system delivery: on the Welcome screen, switching theme mid-session made the "Welcome To Folkora" SVG text lose its fill — only the stroke outline remained visible.
-
-**Root cause:** `globals.css` originally split `.svg-text-welcome`/`.svg-text-folkora` into light-default + `.dark`-override rules, each referencing a *different* keyframe name (`fill-text-light` vs `fill-text-dark`) inside the `animation` shorthand. Toggling `.dark` mid-session changed the resolved `animation-name`, which makes the browser **restart** that animation from scratch — resetting `fill` to transparent and re-arming its 8.5s delay. The static (non-animated) `stroke` property applied instantly, so only the outline remained visible for ~10s after every switch.
-
-**Fix:** introduced a single `--svg-ink` CSS custom property (RGB triplet: `27, 28, 28` in `:root`, `255, 255, 255` in `.dark`) and consolidated `fill-text-light`/`fill-text-dark` into one shared `@keyframes fill-text { to { fill: rgb(var(--svg-ink)); } }`. `.svg-text-welcome`/`.svg-text-folkora` now express `fill`/`stroke` via `rgba(var(--svg-ink), 0)`/`rgb(var(--svg-ink))` and reference the single `fill-text` name — the `.dark`-override blocks (and the reduced-motion media query's duplicate dark overrides) were removed entirely, since `var()` re-resolves live without restarting the animation.
-
-**Verified:** `tsc --noEmit` clean; Playwright test loaded the Welcome page, waited for the write-on/fill sequence to fully settle (~11s), then toggled the theme twice mid-session — `getComputedStyle(...).fill` read a solid color (`rgb(255,255,255)` ⇄ `rgb(27,28,28)`) immediately after each toggle, never a transparent/in-between value. Screenshot confirmed the text renders fully inked, with no hollow/stroke-only flash.
-
-Full architecture detail and the general rule ("resolve animated target colors through a CSS custom property in a single shared keyframe — never swap `animation-name` per theme") are recorded in the `theme-system` memory file.
-
-### Follow-up tweak — Welcome canvas sun/moon (`celestial-layer.tsx`)
-User asked for a crescent moon shape (first tried a half-moon via `clip-path` — corrected to "crescent" after seeing it) and for the sun/moon to render in solid black ("ink") in light theme:
-- **Crescent moon**: replaced the plain circle `<div>` with an inline `<svg>` reusing the *exact same crescent path* as `ThemeToggle`'s `MoonIcon` (`M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a9 9 0 0 0 11 11Z`) — gives the "moon" motif a consistent shape across the toggle button and the animated sky. Glow moved from `box-shadow` (doesn't apply to SVG path fills) to `drop-shadow(...)` on the `<svg>`. Shape applies in **both** themes — it's a shape preference, not a per-theme variant; only the `fill` color (`fill-on-surface dark:fill-surface-container-lowest`) and `drop-shadow` color vary with theme.
-- **Black in light theme**: changed the sun (`bg-on-surface dark:bg-tertiary-fixed`, was always gold `#ffe088`) and the moon's fill (`fill-on-surface dark:fill-surface-container-lowest`, was light-grey `#eae8e7`/white) to render as `on-surface` ink-black (`#1b1c1c`) in light mode. **Why this is more than cosmetic**: in light theme the canvas's internal "night" sky (`--sky-night: #f6efe9 → #efeded`) is only a *subtly warmer pale* gradient — not actually dark — so the old light-grey/white moon nearly disappeared against it, and the gold sun had weak contrast against the pale daytime sky too. Solid ink-black silhouettes read clearly against both, and tie visually to the `--svg-ink` write-on text color. Dark theme is untouched (still gold sun / white crescent glow against the near-black sky).
-- Verified visually with Playwright screenshots across all 4 combinations (light/dark theme × day/night phase) — `tsc --noEmit` clean.
-
----
-
 ## Current Project State
 
 ### What Exists
-- Full Next.js 15 (App Router) project with TypeScript, Tailwind CSS
-- **Screen 1 (Welcome `/`)** — fully styled animated sky splash screen, now theme-aware (day ⇄ night celestial drift plays in both light and dark modes)
-- **Screen 2 (Mood `/onboarding/mood`)** — fully styled, theme-aware horizontal icon cards
-- **Screen 3 (Taste `/onboarding/taste`)** — fully styled, theme-aware pill-chip multi-select with blur-reveal entrance
-- **Light/dark theme system** — global, persisted, toggle with sun/moon icons (see Session 5 below)
-- **Screen 4 (Auth `/auth`)** — fully styled, theme-aware (sign-in/create-account toggle, animated name field, loading state)
-- Discovery Feed (`/discover`) — plain, unstyled, not yet theme-aware
-- Shared components in `src/components/`: `CircleNavButton`, `PageQuote`, `ThemeToggle`
-- Zustand stores: onboarding, auth, **theme** (`useThemeStore`)
-- Mock trip data with personalization filtering logic
-- Full Aether Drift design token system wired into Tailwind config (`darkMode: 'class'` now enabled)
-- Raw Stitch import preserved at `/imported/folkora-onboarding-immersive-story/index.html`
-- All session work through `676f96b` committed and pushed to `origin/master`; this session's theme work is uncommitted
+
+- Full Next.js 15 (App Router) project with TypeScript, Tailwind CSS, Framer Motion
+- **Screen 1 — Welcome (`/`)**: Animated "Aether Drift" sky, write-on SVG typography, celestial day/night drift, birds, CTA. Fully theme-aware.
+- **Screen 2 — Mood (`/onboarding/mood`)**: Four horizontal icon cards, single-select, first card pre-selected. Fully theme-aware.
+- **Screen 3 — Taste (`/onboarding/taste`)**: Flat pill/chip multi-select, blur-reveal entrance animation. Fully theme-aware.
+- **Screen 4 — Auth (`/auth`)**: Sign-in / create-account toggle, animated name field slide, loading state, Forgot password link, PageQuote. Fully theme-aware. Phase 1 mock auth (always succeeds).
+- **Screen 5 — Discover (`/discover`)**: Scroll-driven carousel of curated journeys (hero + 2x2 grid that continuously cycles), theme-aware, images, hover animation, "Next" button, single-step gesture handling. See below for details.
+- **Trip Detail (`/trip/[id]`)**: New shared template page. Every carousel card links here; content resolved per trip id via `trip.service`. Has a dedicated `not-found.tsx` for unknown ids.
+- **Light/dark theme system**: Zustand store (`useThemeStore`), Tailwind `darkMode: 'class'`, inline pre-paint script in `layout.tsx` prevents FOUC. `ThemeToggle` on every screen. Persisted to `localStorage`.
+- Shared components: `CircleNavButton`, `PageQuote`, `ThemeToggle` in `src/components/`
+- Zustand stores: `useOnboardingStore`, `useAuthStore`, `useThemeStore`
+- Mock trip data (`MOCK_TRIPS`, 20 trips) with mood/taste personalization filtering and curated images under `public/images/discover/`
+- Full Aether Drift token system in `tailwind.config.ts`
+- Latest pushed commit: `8c27221` on `origin/master`. **Everything below (full Discover carousel build + Trip Detail page) is uncommitted local work.**
 
 ### What is Functional
-- Full onboarding flow navigation: Welcome → Mood → Taste → Auth → Discover
-- Mood selection (single select, first card selected by default, persists in Zustand)
-- Taste selection (multi-select via pill chips, persists in Zustand)
-- Fake auth (always succeeds, stores mock user)
-- Discovery feed filters mock trips by mood + taste preferences
-- **Light/dark theme**: toggle on Welcome, Mood, and Taste screens; persists across reloads and navigation; no flash-of-wrong-theme on load; respects `prefers-reduced-motion` for the icon swap
+
+- Complete onboarding flow: Welcome → Mood → Taste → Auth → Discover
+- Mood single-select, Taste multi-select (persist in Zustand)
+- Mock auth (always succeeds, stores mock user, redirects to `/discover`)
+- Discover feed filters mock trips by mood + taste preferences
+- Discover carousel: scroll/wheel/touch/keyboard/button-driven, always settles on a card boundary, hover micro-interaction, every card has a photo
+- Every discover card navigates to `/trip/[id]`, rendering the same template with that trip's data (title, destination, country, duration, tagline, tastes)
+- Unknown trip ids render a friendly not-found page with a link back to `/discover`
+- Light/dark theme: toggle on all styled screens, persists across reloads and navigation, no FOUC, `prefers-reduced-motion` respected
 
 ### What is Incomplete
-- Screens 4–5 (Auth, Discover) — unstyled plain HTML, and will need the same `dark:` treatment once styled
+
 - No real authentication (Phase 3)
-- No API integration (Phase 3)
+- No API integration (Phase 3) — `trip.service.getTripById` currently reads `MOCK_TRIPS` synchronously but is `async` so the swap to a real fetch needs no page changes
+- Auth form uses plain React state — needs React Hook Form + Zod (Phase 2)
+- Trip Detail page is minimal (hero image, title, tagline, duration, taste tags) — no booking CTA, itinerary, gallery, or map yet
+- No global 404 (only `/trip/[id]/not-found.tsx` exists)
+- No loading/skeleton states (mock data is synchronous, so not yet needed, but Phase 3 will need them)
 - No Mapbox integration
-- TanStack Query installed but not yet used
-- React Hook Form + Zod installed but not yet used
-- No loading, empty, or error states
+- TanStack Query and React Hook Form + Zod installed but unused
 
 ---
 
-## Session Summary (Session 5 — 2026-06-08)
+## Session Summary (Session 8 — 2026-06-13)
 
-### Goal
-Add a light mode alongside the existing dark "Aether Drift" look, with a sun/moon toggle to switch between them — without redesigning or duplicating the styled screens.
+### Discover Carousel (`src/features/discover/components/discover-carousel.tsx`, `carousel-card.tsx`)
 
-### Theme Infrastructure (new)
-- **`src/store/theme-store.ts`** — `useThemeStore` (Zustand): `theme: 'light' | 'dark'`, `setTheme`, `toggleTheme`, `syncFromDocument`. Applies the `light`/`dark` class + `color-scheme` to `<html>` and persists to `localStorage` (`folkora-theme`) on every change.
-- **`tailwind.config.ts`** — added `darkMode: 'class'`, so `dark:` variants key off the `<html>` class rather than the OS preference.
-- **`src/app/layout.tsx`** — added an inline head `<script>` (via `dangerouslySetInnerHTML`, with `suppressHydrationWarning` on `<html>`) that reads `localStorage` and applies the theme class **before first paint**. This is what prevents a flash of the wrong theme — styling is entirely CSS-driven (`dark:` classes / `.dark` selectors / CSS custom properties), so it's correct on the very first frame regardless of when the Zustand store hydrates.
-- **`src/components/theme-toggle.tsx`** — `ThemeToggle`: circular button styled like the nav buttons, shows a hand-drawn sun (light mode) or crescent moon (dark mode) — echoing the Welcome screen's celestial motif rather than a generic switch icon. Cross-fades + gently rotates/scales between icons via Framer Motion (`AnimatePresence`), collapses to a plain opacity swap under `prefers-reduced-motion`. Calls `syncFromDocument()` on mount to reconcile the store's default with whatever the inline script already applied.
+Built out the full interaction model for the scroll-driven hero + 2x2 grid carousel:
 
-### Shared Component Extraction (overdue from Session 4 — now done)
-- **`src/components/circle-nav-button.tsx`** — `CircleNavButton`: back/next chevron circle, parameterized by `direction`, theme-aware colors (inverted between modes for contrast), visual-only `disabled` styling (no `disabled` attribute, per the Framer Motion click-swallowing pattern).
-- **`src/components/page-quote.tsx`** — `PageQuote`: italic muted travel quote, declares the shared `item` fade/drift variant and inherits stagger orchestration from the page's container.
-- Both now used on Mood and Taste; Auth should reuse them when styled (no more duplication).
+- **Scroll-snap that always completes a transition**: an idle-snap effect animates `scrollLeft` to the nearest `SET_WIDTH` multiple (`SNAP_IDLE_MS` = 120ms idle, `SNAP_DURATION_S` = 0.4s, ease `[0.4,0,0.2,1]`).
+- **Spring-smoothed scroll position**: `smoothScrollX = useSpring(scrollX, { stiffness: 300, damping: 32, mass: 0.6 })` feeds all card transforms, so the hero/grid transition reads as fluid rather than mechanical.
+- **One gesture = one step, regardless of input**: a shared `stepCarousel(el, direction)` / `animateTo(el, target)` pair drives wheel, touch, and the Next button.
+  - Wheel: picks whichever of `deltaX`/`deltaY` has the larger magnitude (handles macOS trackpad swipes that report as either axis), debounces a full gesture including its inertial momentum tail via `WHEEL_GESTURE_GAP_MS` (180ms) so one big swipe = one step.
+  - Touch: `touch-action: none` + `preventDefault` suppress native scrolling; `touchend` measures total `deltaX` against a 30px threshold, then steps once regardless of swipe depth/speed.
+  - Rapid repeated gestures while an animation is mid-flight are queued via `pendingStepRef` (not dropped) and run on `onComplete`.
+- **"Next" button**: fixed-position circular arrow button, sibling to the scroll container (so its `right` offset is relative to the viewport, not the scrollable content), currently at `right-16`. Calls the same `stepCarousel`.
+- **Hover animation** (`carousel-card.tsx`): `whileHover={{ scale: 1.02 }}` on the card, image `group-hover:scale-110`, overlay gradient lightens on hover.
+- **Images**: all 20 `MOCK_TRIPS` entries now have `imageUrl` pointing at `public/images/discover/*.jpg` (10 unique images, reused across trips for demo purposes). `next/image` with `fill`, `sizes`, `priority` on the initial hero card; falls back to a gradient if `imageUrl` is empty.
+- **Small-card tagline gap fix**: `taglineHeight`/`taglineOpacity` both animate from the card's width, collapsing the tagline's reserved space to `0` in grid cells so there's no gap between the place name and the duration line.
 
-### Re-theming approach
-Rather than rewriting the dark look, the **existing styled screens stayed the dark mode** and a parallel light palette was added via Tailwind `dark:` variants (light = default/no-prefix, dark = `dark:`-prefixed):
-- Backgrounds: new `.bg-onboarding-sky` utility class in `globals.css` — warm "glossy paper" gradient (`#fbf9f8 → #efeded`) by default, the original near-black Aether Drift gradient under `.dark`. Replaces the old inline `style={{ background: ... }}`.
-- Text: `on-surface`/`on-surface-variant` (dark ink) by default, `surface-container-lowest`/`surface-container-high` (white/light) under `dark:` — using tokens already defined in `tailwind.config.ts`.
-- Selected/accent surfaces (mood cards, taste pills, CTA button): **inverted** between modes — dark chip + white text in light mode, white chip + dark text in dark mode — so the "selected" state always reads as the highest-contrast element on the page in both themes.
-- `text-gray-500` quote color was left unchanged — its contrast against both the warm-light and near-black gradients is close enough (~4.5:1) that no variant was needed.
+### Trip Detail Page (new)
 
-### Welcome canvas — special handling
-The Welcome screen has its own internal `isNight` celestial drift (toggles every 8s, independent of the user's theme preference — it's a decorative day/night cycle, not the light/dark switch). To keep this CSS-driven (FOUC-free) while still being theme-aware:
-- Replaced the `SKY_DAY`/`SKY_NIGHT` JS string constants with CSS custom properties `--sky-day`/`--sky-night`, defined once in `:root` (warm daylight pair) and redefined in `.dark` (the original near-black pair). The component just does `background: isNight ? 'var(--sky-night)' : 'var(--sky-day)'` — the `.dark` class (already applied pre-paint) decides which literal gradient that resolves to.
-- `celestial-layer.tsx` — radial glow tint and moon color/glow now have light-mode variants (`dark:` Tailwind variants) so they read softly against a bright sky instead of vanishing.
-- `globals.css` — `.svg-text-welcome`/`.svg-text-folkora`/`.bird-svg` (and the `fill-text` keyframe) split into light-default + `.dark`-override rules — the write-on typography and birds now render in dark ink on light backgrounds, white on dark.
-- `onboarding-cta.tsx` — button colors inverted between themes (same "selected = highest contrast" rule); hover glow color is read from `useThemeStore` directly (safe — runs only on interaction, well after the store has synced, and Framer Motion's `whileHover` boxShadow needs a concrete value to interpolate, not a CSS variable reference).
+- **`src/features/trip/services/trip.service.ts`**: `getTripById(id): Promise<Trip | null>` — Phase 1 reads `MOCK_TRIPS`; Phase 3 will replace the body with an API call without changing callers (per CLAUDE.md service-layer + Phase 3 rules).
+- **`src/app/trip/[id]/page.tsx`**: async Server Component. Full-bleed hero image (60–70vh) with gradient overlay, back button to `/discover`, destination/country eyebrow, large cursive title, tagline, duration, and taste pills below. Calls `notFound()` if no trip matches the id.
+- **`src/app/trip/[id]/not-found.tsx`**: editorial empty state ("This journey has wandered off.") with a link back to `/discover`.
+- **`carousel-card.tsx`**: the card is now `motion.create(Link)` (`MotionLink`) pointing at `/trip/${trip.id}` — preserves all existing motion transforms (x/y/width/height/opacity/zIndex) and hover animation while making the whole card a link.
+- Verified with Playwright: clicking the hero card navigates to `/trip/trip-001` and renders "The Quiet Dolomites"; a different trip (`/trip/trip-005`) renders the same template with "Kyoto in Autumn"; an unknown id renders the not-found page.
 
-### Verification
-- `tsc --noEmit` — clean
-- Playwright screenshot pass across Welcome/Mood/Taste in both themes (light + dark), confirmed: visuals match intent, toggle switches instantly, theme persists in `localStorage` and across reload with no flash, and persists across in-app navigation (Mood → Taste).
+### New Dependencies
+
+None added this session.
 
 ---
 
 ## Immediate Next Steps
 
-1. **Style Screen 5 — Discovery Feed (`/discover`)**
-   - Trip cards with imagery
-   - Mood/taste-filtered results
-   - Skeleton loading states
-   - Theme-aware from the start
-
-3. **Add Shadcn/UI** as the component primitive layer — consider wiring its theming to the same `.dark` class strategy already in place
-
-4. **Commit this session's theme work** — currently uncommitted (`primer.md`/`project-memory.md` plus all theme infra/component/page changes)
+1. **Commit the Discover carousel + Trip Detail work** (currently uncommitted local changes)
+2. **Flesh out the Trip Detail page** — itinerary/gallery sections, booking CTA, map placeholder (per Phase 1: still static/mock)
+3. **Add Shadcn/UI** — wire its theming to the same `.dark` class strategy already in place
+4. **React Hook Form + Zod for Auth form** (Phase 2) — currently plain React state
 
 ---
 
 ## Open Issues
 
-- ~~Welcome SVG fill disappearing on mid-session theme switch~~ — **fixed in Session 6** (see addendum at top): `fill-text-light`/`fill-text-dark` keyframe pair replaced with a single `fill-text` keyframe driven by `--svg-ink`, eliminating the `animation-name` change that caused the browser to restart (and visually reset) the fill animation.
-- Auth form uses plain React state — needs React Hook Form + Zod (Phase 2)
-- Trip cards have no images — `imageUrl` is empty string in mock data
-- No 404 / not-found page
-- No loading, empty, or error states
-- Discover page is unstyled AND not theme-aware — will need both the visual pass and `dark:` treatment
-- `project-memory.md` may again pick up a trailing hook-generated entry after this session's commit(s) — see the Git Hook Note carried from Session 4 (self-referential post-commit logging; one trailing uncommitted entry is normal)
+- Discover carousel + Trip Detail page are uncommitted local changes — commit before starting new work
+- Auth form needs React Hook Form + Zod (Phase 2)
+- Trip Detail page has no booking CTA, itinerary, or gallery yet
+- No global 404 page (only the trip-detail-scoped one)
+- No real loading, empty, or error states tied to async data (not yet needed — Phase 1 data is synchronous)
+- `project-memory.md` picks up a trailing uncommitted diff after each commit (auto-generated by git post-commit hook) — one trailing entry is normal, not a problem
 
 ---
 
 ## Architecture Decisions
 
-- **Theme = Zustand store + Tailwind `class` strategy + inline pre-paint script (this session)**: The store (`useThemeStore`) owns `theme` and DOM/localStorage sync; `darkMode: 'class'` in `tailwind.config.ts` makes `dark:` variants key off the `<html>` class; an inline `<script>` in `layout.tsx`'s `<head>` applies that class from `localStorage` *before* React hydrates. **Why this order matters**: styling driven purely by the DOM class (CSS) is correct on the very first paint, before any JS state exists — avoiding the flash that a React-state-driven theme would cause. The store exists only so components can *read* the current theme (e.g., to pick the right icon) and to let users *change* it; it never gates the visual styling itself.
-- **Light mode = default (no prefix), dark mode = `dark:` variant**: Matches Tailwind convention. The previously dark-only screens kept their exact look — their classes simply moved under `dark:`, with new light-mode classes added as the unprefixed base.
-- **Selected/accent state inverts between themes**: white-on-dark in dark mode, dark-on-white in light mode — keeps the "selected" element the highest-contrast thing on screen in both themes, a single semantic rule rather than per-component tuning.
-- **CSS custom properties for anything that must be FOUC-free but isn't a simple Tailwind utility swap**: The Welcome canvas's day/night sky gradient is *computed in JS* (from `isNight`) but must also vary by theme — solved by defining `--sky-day`/`--sky-night` once per theme in CSS (`:root` / `.dark`) and letting the component reference `var(--sky-day)`/`var(--sky-night)`, so the resolved value is correct from the first frame without the component needing to know the theme at all.
-- **Read theme from the store only for interaction-time values** (e.g., `OnboardingCTA`'s hover glow color): safe because it only runs after user interaction, well past the point where `syncFromDocument` has reconciled the store — and because Framer Motion needs a concrete animatable value (a CSS variable string can't be interpolated for `boxShadow`).
-- **Stitch MCP as design source of truth**: All screen styling starts from Stitch import. Raw imports preserved in `/imported/` unmodified.
-- **Zustand for onboarding + auth + theme state**: Client-side UI state only. Never stores server/API data.
-- **Framer Motion for all animations**: CSS keyframes kept only for continuous loops (birds, SVG stroke-dasharray, theme-aware fill-text). All entrance/exit/icon-swap animations use Framer Motion.
-- **`useEffect` for random/volatile values**: Any `Math.random()` or `Date` must run in `useEffect` to avoid SSR hydration mismatches.
-- **Plain `<button>` over `motion.button` for navigational actions**: Framer Motion's `disabled` + `whileTap` combo causes click event swallowing — use `motion.div` wrapper + plain `<button>` instead (now encoded directly in `CircleNavButton`'s doc comment).
-- **Explicit navigation over `router.back()`**: Always use `router.push('/explicit-path')` for onboarding back navigation.
-- **First mood pre-selected on mount**: Reduces friction — user can proceed immediately without a required click.
-- **Nunito as primary UI font**: Plus Jakarta Sans retained only for the "Folkora" SVG write-on animation.
-- **Design tokens in tailwind.config.ts**: Full Aether Drift palette centralized — no raw hex values in component files (CSS custom properties for the Welcome sky gradients are the one deliberate exception, scoped to `globals.css` and documented there).
-- **Pill/chip multi-select pattern (Taste page)**: rendered as ONE flat wrapped row, never grouped under category headings.
-- **Blur-reveal over rotation/bounce for "lively" entrance requests**: default to blur-to-focus + gentle scale + drift-up.
+- **Theme = Zustand + Tailwind `class` strategy + inline pre-paint script**: `useThemeStore` owns `theme` and DOM/localStorage sync. `darkMode: 'class'` makes `dark:` variants key off the `<html>` class. An inline `<script>` in `layout.tsx`'s `<head>` applies the class from `localStorage` before React hydrates.
+- **Light = default (no prefix), dark = `dark:` variant**: matches Tailwind convention.
+- **Selected/accent state inverts between themes**: dark chip + white text in light mode, white chip + dark text in dark mode.
+- **CSS custom properties for FOUC-free JS-computed theme values**: `--sky-day`/`--sky-night`/`--svg-ink` defined per-theme in `:root`/`.dark`.
+- **Single shared `@keyframes` per animated property, CSS var for the color**: never swap `animation-name` per theme.
+- **`motion.div` wrapper + plain `<button>`**: Framer Motion's `whileTap`/`disabled` on `motion.button` swallows clicks.
+- **Explicit navigation over `router.back()`**.
+- **Carousel: absolute positioning + scroll-driven transforms, not pagination**: every card is positioned via `useTransform(scrollX, keyframes...)` so the hero/grid layout is one continuous cycle rather than discrete "pages" (see `utils/carousel-keyframes.ts`).
+- **One gesture = one step**: shared `stepCarousel`/`animateTo` + `isAnimatingRef`/`pendingStepRef` ensures wheel/touch/button/keyboard input always advances exactly one `SET_WIDTH`, queuing (not dropping) gestures that arrive mid-animation.
+- **Fixed-position carousel controls must be siblings of the scroll container**: a button placed *inside* an `overflow-x-auto` element has its `right`/`left` offsets computed against the scrollable content box, not the viewport — it will appear to scroll with the content. Wrap the scroll container and any fixed controls in an outer `relative` div instead.
+- **Cards as `motion.create(Link)`**: to keep both Framer Motion's transform-driven `style` props and Next's client-side navigation on the same element, wrap `next/link`'s `Link` with `motion.create()` rather than nesting a `motion.article` inside a `Link` (or vice versa).
+- **Shared detail route via dynamic segment**: `/trip/[id]` is one template for all trips — Phase 1 resolves `id` against `MOCK_TRIPS` via an `async` service function so Phase 3's API swap requires no page changes.
 
 ---
 
 ## Future Considerations
 
+- Progress indicator for onboarding flow (step dots or arc path)
 - CMS for onboarding options (moods, tastes) to allow non-code updates
-- Progress indicator for onboarding flow (e.g. step dots, arc path)
 - Mapbox integration for destination map views
-- Trip detail page (`/trip/[id]`) needed before booking flow
+- Trip Detail page: itinerary, gallery, booking flow, map
 - Store onboarding preferences to user profile post Phase 3 auth
-- Suspense + skeleton states before API integration
-- Consider whether `TASTE_GROUPS`' grouped data shape is still worth keeping now that the UI flattens it
-- **Theme**: consider seeding the *very first* visit (no stored preference) from `prefers-color-scheme` instead of always defaulting to dark — currently the inline script defaults to `'dark'` for anyone without a saved choice, which matches "the theme the screens were designed in" but may not match what a light-mode-OS visitor expects on first load
-- **Theme**: once Shadcn/UI is added, consider migrating its theme tokens onto the same `.dark` class / CSS-variable approach rather than running two theming systems in parallel
+- Suspense + skeleton states once Trip Detail/Discover move to real API calls
+- Consider seeding first visit from `prefers-color-scheme` instead of always defaulting to dark
+- Once Shadcn/UI is added, migrate its tokens onto the same `.dark`/CSS-variable approach
+- Consider a "previous" button mirroring the new "Next" button for symmetry

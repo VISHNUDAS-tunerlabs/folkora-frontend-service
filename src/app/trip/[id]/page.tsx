@@ -80,6 +80,13 @@ export default async function TripPage({ params }: TripPageProps) {
             </span>
           ))}
         </div>
+
+        <Link
+          href={`/trip/${trip.id}/book`}
+          className="mt-8 inline-block rounded-full bg-on-surface px-8 py-3 text-label-md text-surface-container-lowest dark:bg-white dark:text-on-surface"
+        >
+          Book this journey
+        </Link>
       </div>
     </main>
   );

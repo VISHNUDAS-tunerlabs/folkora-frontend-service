@@ -1,11 +1,17 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { animate, useReducedMotion, useScroll, useSpring } from 'framer-motion';
 import type { Trip } from '@/types/trip';
 import { CAROUSEL_LAYOUT, SET_WIDTH } from '../constants/carousel-layout';
 import { getPlaceholderGradient } from '../constants/placeholder-gradients';
-import { getCardKeyframes, getCarouselScrollRange } from '../utils/carousel-keyframes';
+import { useCarouselGroupMargin } from '../hooks/use-carousel-group-margin';
+import {
+  CAROUSEL_WINDOW_SIZE,
+  getCardKeyframes,
+  getCarouselScrollRange,
+  getInfiniteCarouselMetrics,
+} from '../utils/carousel-keyframes';
 import { CarouselCard } from './carousel-card';
 
 /** How long the carousel waits after the last scroll input before snapping. */
@@ -18,6 +24,9 @@ const SNAP_DURATION_S = 0.4;
  * gap longer than this between wheel events marks the end of that gesture.
  */
 const WHEEL_GESTURE_GAP_MS = 180;
+
+/** SSR-safe layout effect — avoids the "useLayoutEffect does nothing on the server" warning. */
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 interface DiscoverCarouselProps {
   trips: Trip[];
@@ -32,6 +41,12 @@ interface DiscoverCarouselProps {
  * card grows to take its place, the rest of the grid advances one slot, and
  * a new card slides in bottom-right — a single continuous cycle.
  *
+ * When there are more trips than fit in one window, the cycle loops
+ * indefinitely: `CAROUSEL_WINDOW_SIZE` clones of the trailing cards are
+ * rendered before the real set and `CAROUSEL_WINDOW_SIZE` clones of the
+ * leading cards after it, so stepping past the last card seamlessly
+ * continues into the first and vice versa.
+ *
  * See `utils/carousel-keyframes` for the per-card position/size math.
  */
 export function DiscoverCarousel({ trips }: DiscoverCarouselProps) {
@@ -44,7 +59,15 @@ export function DiscoverCarousel({ trips }: DiscoverCarouselProps) {
   // continuous hero/grid transition feel fluid instead of mechanical.
   const smoothScrollX = useSpring(scrollX, { stiffness: 300, damping: 32, mass: 0.6 });
 
-  const scrollRange = getCarouselScrollRange(trips.length);
+  const cardCount = trips.length;
+  const isInfinite = cardCount > CAROUSEL_WINDOW_SIZE;
+  const infiniteMetrics = getInfiniteCarouselMetrics(cardCount);
+  const scrollRange = isInfinite ? infiniteMetrics.scrollRange : getCarouselScrollRange(cardCount);
+
+  // Centers the hero + grid group in the viewport, falling back to the
+  // editorial margin on viewports too narrow to center it. Shared with
+  // `DiscoverPage` so page chrome can align to the hero card's edge.
+  const marginLeft = useCarouselGroupMargin();
 
   // Tracks whether a snap/step animation is currently driving scrollLeft, so
   // the two effects below don't fight each other or re-trigger off of their
@@ -56,6 +79,18 @@ export function DiscoverCarousel({ trips }: DiscoverCarouselProps) {
   // animation completes — so a quick gesture is never silently dropped.
   const pendingStepRef = useRef<1 | -1 | null>(null);
 
+  // Open on card 0 as the hero. The loop's leading clones live at lower
+  // scrollLeft values, so without this the carousel would open on one of
+  // those clones instead of the first real card.
+  useIsomorphicLayoutEffect(() => {
+    if (!isInfinite) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    el.scrollLeft = infiniteMetrics.initialScrollLeft;
+    smoothScrollX.jump(infiniteMetrics.initialScrollLeft, false);
+  }, [isInfinite, infiniteMetrics.initialScrollLeft, smoothScrollX]);
+
   const animateTo = (el: HTMLDivElement, target: number) => {
     isAnimatingRef.current = true;
     return animate(el.scrollLeft, target, {
@@ -65,6 +100,26 @@ export function DiscoverCarousel({ trips }: DiscoverCarouselProps) {
         el.scrollLeft = value;
       },
       onComplete: () => {
+        // If the step landed on a loop clone, teleport to the equivalent
+        // real-card position. The two render identically (every virtual
+        // index shifts by `cardCount`, i.e. by exactly `cardCount *
+        // SET_WIDTH`), so the jump is invisible.
+        if (isInfinite) {
+          const targetStep = Math.round(target / SET_WIDTH);
+          let settledStep: number | null = null;
+          if (targetStep === infiniteMetrics.wrapForwardStep) {
+            settledStep = infiniteMetrics.wrapForwardTargetStep;
+          } else if (targetStep === infiniteMetrics.wrapBackwardStep) {
+            settledStep = infiniteMetrics.wrapBackwardTargetStep;
+          }
+
+          if (settledStep !== null) {
+            const settled = settledStep * SET_WIDTH;
+            el.scrollLeft = settled;
+            smoothScrollX.jump(settled, false);
+          }
+        }
+
         isAnimatingRef.current = false;
 
         const pending = pendingStepRef.current;
@@ -79,7 +134,9 @@ export function DiscoverCarousel({ trips }: DiscoverCarouselProps) {
   // Advance exactly one card-transition step (SET_WIDTH) in `direction`
   // (1 = forward, -1 = backward), regardless of how strong the input was.
   // If another step is already animating, queue this one rather than
-  // dropping it.
+  // dropping it. When looping, steps are never clamped — running off either
+  // end of the real cards lands on a clone, which `animateTo` then resolves
+  // back onto the real set.
   const stepCarousel = (el: HTMLDivElement, direction: 1 | -1) => {
     if (isAnimatingRef.current) {
       pendingStepRef.current = direction;
@@ -87,8 +144,13 @@ export function DiscoverCarousel({ trips }: DiscoverCarouselProps) {
     }
 
     const currentStep = Math.round(el.scrollLeft / SET_WIDTH);
-    const target = Math.min(Math.max((currentStep + direction) * SET_WIDTH, 0), scrollRange);
+    let targetStep = currentStep + direction;
 
+    if (!isInfinite) {
+      targetStep = Math.min(Math.max(targetStep, 0), scrollRange / SET_WIDTH);
+    }
+
+    const target = targetStep * SET_WIDTH;
     if (target === el.scrollLeft) return undefined;
 
     return animateTo(el, target);
@@ -134,7 +196,7 @@ export function DiscoverCarousel({ trips }: DiscoverCarouselProps) {
       clearTimeout(gestureTimer);
       controls?.stop();
     };
-  }, [scrollRange, prefersReducedMotion]);
+  }, [scrollRange, isInfinite, prefersReducedMotion]);
 
   // Touch swipes are handled the same way: a single swipe — no matter how
   // long or fast — advances exactly one step. Native touch scrolling is
@@ -178,7 +240,7 @@ export function DiscoverCarousel({ trips }: DiscoverCarouselProps) {
       el.removeEventListener('touchend', handleTouchEnd);
       controls?.stop();
     };
-  }, [scrollRange, prefersReducedMotion]);
+  }, [scrollRange, isInfinite, prefersReducedMotion]);
 
   // Keyboard and scrollbar-drag input can still move scrollLeft
   // continuously. Cards are only "settled" at multiples of SET_WIDTH, so
@@ -213,7 +275,33 @@ export function DiscoverCarousel({ trips }: DiscoverCarouselProps) {
       clearTimeout(idleTimer);
       controls?.stop();
     };
-  }, [scrollRange, prefersReducedMotion]);
+  }, [scrollRange, isInfinite, prefersReducedMotion]);
+
+  // Render the real trips plus, when looping, a window's worth of clones on
+  // each side — clone `i` shares its source trip's content but is given a
+  // virtual index past the real set, so `getCardKeyframes` positions it as
+  // the seamless continuation of the cycle.
+  const renderItems = isInfinite
+    ? [
+        ...Array.from({ length: CAROUSEL_WINDOW_SIZE }, (_, j) => {
+          const tripIndex = cardCount - CAROUSEL_WINDOW_SIZE + j;
+          const trip = trips[tripIndex];
+          return { trip, tripIndex, virtualIndex: j, key: `loop-start-${trip.id}` };
+        }),
+        ...trips.map((trip, tripIndex) => ({
+          trip,
+          tripIndex,
+          virtualIndex: tripIndex + CAROUSEL_WINDOW_SIZE,
+          key: trip.id,
+        })),
+        ...Array.from({ length: CAROUSEL_WINDOW_SIZE }, (_, j) => {
+          const trip = trips[j];
+          return { trip, tripIndex: j, virtualIndex: cardCount + CAROUSEL_WINDOW_SIZE + j, key: `loop-end-${trip.id}` };
+        }),
+      ]
+    : trips.map((trip, tripIndex) => ({ trip, tripIndex, virtualIndex: tripIndex, key: trip.id }));
+
+  const initialHeroVirtualIndex = isInfinite ? CAROUSEL_WINDOW_SIZE : 0;
 
   return (
     <div className="relative" style={{ height: CAROUSEL_LAYOUT.heroHeight }}>
@@ -227,17 +315,31 @@ export function DiscoverCarousel({ trips }: DiscoverCarouselProps) {
         {/* Establishes the scrollable width — its own content is invisible. */}
         <div style={{ width: `calc(100% + ${scrollRange}px)`, height: 1 }} aria-hidden="true" />
 
-        {trips.map((trip, index) => (
+        {renderItems.map(({ trip, tripIndex, virtualIndex, key }) => (
           <CarouselCard
-            key={trip.id}
+            key={key}
             trip={trip}
-            gradient={getPlaceholderGradient(index)}
-            keyframes={getCardKeyframes(index)}
+            gradient={getPlaceholderGradient(tripIndex)}
+            keyframes={getCardKeyframes(virtualIndex, marginLeft)}
             scrollX={smoothScrollX}
-            isInitialHero={index === 0}
+            isInitialHero={virtualIndex === initialHeroVirtualIndex}
           />
         ))}
       </div>
+
+      <button
+        type="button"
+        onClick={() => {
+          const el = containerRef.current;
+          if (el) stepCarousel(el, -1);
+        }}
+        aria-label="Previous journey"
+        className="absolute left-16 top-1/2 z-50 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-on-surface text-surface-container-lowest transition-all duration-200 hover:scale-110 hover:shadow-[0_0_20px_rgba(0,0,0,0.18)] active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-surface focus-visible:ring-offset-2 focus-visible:ring-offset-surface dark:bg-white dark:text-on-surface dark:hover:shadow-[0_0_20px_rgba(255,255,255,0.25)] dark:focus-visible:ring-white dark:focus-visible:ring-offset-black"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
 
       <button
         type="button"

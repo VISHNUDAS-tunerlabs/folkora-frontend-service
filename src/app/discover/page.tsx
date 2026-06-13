@@ -27,6 +27,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { MOCK_TRIPS } from '@/constants/mock-trips';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { DiscoverCarousel } from '@/features/discover/components/discover-carousel';
+import { useCarouselGroupMargin } from '@/features/discover/hooks/use-carousel-group-margin';
 import type { Trip } from '@/types/trip';
 
 const container = {
@@ -70,6 +71,7 @@ function getPersonalizedTrips(
 export default function DiscoverPage() {
   const { selectedMood, selectedTastes } = useOnboardingStore();
   const { user } = useAuthStore();
+  const carouselMarginLeft = useCarouselGroupMargin();
 
   const personalizedTrips = getPersonalizedTrips(MOCK_TRIPS, selectedMood, selectedTastes);
 
@@ -78,7 +80,8 @@ export default function DiscoverPage() {
       <ThemeToggle className="absolute bottom-8 left-8" />
 
       <motion.div
-        className="px-margin-mobile md:px-margin-desktop mb-6 sm:mb-8 shrink-0"
+        className="pr-margin-mobile md:pr-margin-desktop mb-6 sm:mb-8 shrink-0"
+        style={{ paddingLeft: carouselMarginLeft }}
         initial="hidden"
         animate="visible"
         variants={container}

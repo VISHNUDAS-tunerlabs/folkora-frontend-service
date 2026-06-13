@@ -30,3 +30,9 @@ export const SET_WIDTH =
   CAROUSEL_LAYOUT.cardGap +
   (CAROUSEL_LAYOUT.cellWidth * 2 + CAROUSEL_LAYOUT.cellGap) +
   CAROUSEL_LAYOUT.cardGap;
+
+/** Combined width of the hero card + the 2x2 grid block, used to center the group in the viewport. */
+export const GROUP_WIDTH =
+  CAROUSEL_LAYOUT.heroWidth +
+  CAROUSEL_LAYOUT.cardGap +
+  (CAROUSEL_LAYOUT.cellWidth * 2 + CAROUSEL_LAYOUT.cellGap);
